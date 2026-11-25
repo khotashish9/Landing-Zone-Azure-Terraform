@@ -1,0 +1,16 @@
+{
+  "displayName": "Deny creation/update of any resource (decommissioned subscriptions)",
+  "description": "Applied to the Decommissioned management group. Existing resources can still be deleted; role/policy operations (Microsoft.Authorization) remain allowed for clean-up.",
+  "mode": "All",
+  "version": "1.0.0",
+  "parameters": {},
+  "policyRule": {
+    "if": {
+      "field": "type",
+      "notLike": "Microsoft.Authorization/*"
+    },
+    "then": {
+      "effect": "deny"
+    }
+  }
+}

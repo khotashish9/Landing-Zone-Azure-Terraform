@@ -1,0 +1,71 @@
+{
+  "displayName": "Deploy diagnostic settings for Key Vault to Log Analytics",
+  "description": "DeployIfNotExists: streams Key Vault audit logs and metrics to the central Log Analytics workspace.",
+  "mode": "Indexed",
+  "version": "1.0.0",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": { "displayName": "Effect", "description": "DeployIfNotExists, AuditIfNotExists or Disabled." },
+      "allowedValues": ["DeployIfNotExists", "AuditIfNotExists", "Disabled"],
+      "defaultValue": "DeployIfNotExists"
+    },
+    "logAnalytics": {
+      "type": "String",
+      "metadata": { "displayName": "Log Analytics workspace resource ID", "description": "Destination workspace." }
+    }
+  },
+  "policyRule": {
+    "if": {
+      "field": "type",
+      "equals": "Microsoft.KeyVault/vaults"
+    },
+    "then": {
+      "effect": "[parameters('effect')]",
+      "details": {
+        "type": "Microsoft.Insights/diagnosticSettings",
+        "name": "setByPolicy",
+        "existenceCondition": {
+          "field": "Microsoft.Insights/diagnosticSettings/workspaceId",
+          "equals": "[parameters('logAnalytics')]"
+        },
+        "roleDefinitionIds": [
+          "/providers/microsoft.authorization/roleDefinitions/749f88d5-cbae-40b8-bcfc-e573ddc772fa",
+          "/providers/microsoft.authorization/roleDefinitions/92aaf0da-9dab-42b6-94a3-d43ce8d16293"
+        ],
+        "deployment": {
+          "properties": {
+            "mode": "incremental",
+            "template": {
+              "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+              "contentVersion": "1.0.0.0",
+              "parameters": {
+                "resourceName": { "type": "string" },
+                "logAnalytics": { "type": "string" },
+                "location": { "type": "string" }
+              },
+              "resources": [
+                {
+                  "type": "Microsoft.KeyVault/vaults/providers/diagnosticSettings",
+                  "apiVersion": "2021-05-01-preview",
+                  "name": "[concat(parameters('resourceName'), '/Microsoft.Insights/setByPolicy')]",
+                  "location": "[parameters('location')]",
+                  "properties": {
+                    "workspaceId": "[parameters('logAnalytics')]",
+                    "logs": [ { "categoryGroup": "audit", "enabled": true } ],
+                    "metrics": [ { "category": "AllMetrics", "enabled": true } ]
+                  }
+                }
+              ]
+            },
+            "parameters": {
+              "resourceName": { "value": "[field('name')]" },
+              "logAnalytics": { "value": "[parameters('logAnalytics')]" },
+              "location": { "value": "[field('location')]" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

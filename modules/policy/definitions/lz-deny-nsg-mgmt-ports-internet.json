@@ -1,0 +1,54 @@
+{
+  "displayName": "Deny NSG rules that expose SSH/RDP (22, 3389) to the Internet",
+  "description": "Blocks inbound Allow rules from Internet/any source to port 22, 3389 or any port. Covers standalone securityRules and rules defined inline in an NSG. Port ranges and multi-port lists are not evaluated.",
+  "mode": "All",
+  "version": "1.0.0",
+  "parameters": {
+    "effect": {
+      "type": "String",
+      "metadata": {
+        "displayName": "Effect",
+        "description": "Audit to report only, Deny to block."
+      },
+      "allowedValues": ["Audit", "Deny", "Disabled"],
+      "defaultValue": "Deny"
+    }
+  },
+  "policyRule": {
+    "if": {
+      "anyOf": [
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Network/networkSecurityGroups/securityRules" },
+            { "field": "Microsoft.Network/networkSecurityGroups/securityRules/direction", "equals": "Inbound" },
+            { "field": "Microsoft.Network/networkSecurityGroups/securityRules/access", "equals": "Allow" },
+            { "field": "Microsoft.Network/networkSecurityGroups/securityRules/sourceAddressPrefix", "in": ["*", "Internet", "0.0.0.0/0", "any"] },
+            { "field": "Microsoft.Network/networkSecurityGroups/securityRules/destinationPortRange", "in": ["22", "3389", "*"] }
+          ]
+        },
+        {
+          "allOf": [
+            { "field": "type", "equals": "Microsoft.Network/networkSecurityGroups" },
+            {
+              "count": {
+                "field": "Microsoft.Network/networkSecurityGroups/securityRules[*]",
+                "where": {
+                  "allOf": [
+                    { "field": "Microsoft.Network/networkSecurityGroups/securityRules[*].direction", "equals": "Inbound" },
+                    { "field": "Microsoft.Network/networkSecurityGroups/securityRules[*].access", "equals": "Allow" },
+                    { "field": "Microsoft.Network/networkSecurityGroups/securityRules[*].sourceAddressPrefix", "in": ["*", "Internet", "0.0.0.0/0", "any"] },
+                    { "field": "Microsoft.Network/networkSecurityGroups/securityRules[*].destinationPortRange", "in": ["22", "3389", "*"] }
+                  ]
+                }
+              },
+              "greater": 0
+            }
+          ]
+        }
+      ]
+    },
+    "then": {
+      "effect": "[parameters('effect')]"
+    }
+  }
+}
